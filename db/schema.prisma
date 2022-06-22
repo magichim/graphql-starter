@@ -1,0 +1,37 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String
+
+  Purchase Purchase[]
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  price       Int
+  description String?   @db.VarChar(255)
+  deletedAt   DateTime? @db.Timestamp(3)
+
+  Purchase Purchase[]
+
+  @@index([deletedAt], name: "deleted_at_index")
+}
+
+model Purchase {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   Int
+  purchasedAt DateTime @default(now()) @db.Timestamp(3)
+}
+
+generator client {
+  provider = "prisma-client-js"
+}

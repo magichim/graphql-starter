@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "esnext",
+    "sourceMap": true,
+    "outDir": "./build",
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "importHelpers": true // tslib
+  },
+  "include": ["src/**/*", "@types/**/*"],
+  "exclude": ["node_modules"],
+  "ts-node": {
+    "transpileOnly": true,
+    "swc": true
+  }
+}

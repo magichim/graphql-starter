@@ -1,0 +1,50 @@
+type User {
+  id: ID!
+  name: String
+  email: String
+}
+
+input UserInput {
+  name: String
+  email: String
+}
+
+type Product {
+  id: ID!
+  name: String
+  price: Int
+  description: String
+  deletedAt: String
+}
+
+input ProductInput {
+  name: String
+  price: Int
+  description: String
+}
+
+type Purchase {
+  id: ID!
+  userId: Int
+  productId: Int
+}
+
+type PurchaseList {
+  id: ID!
+  user: User
+  product: Product
+}
+
+type Query {
+  users: [User]
+  product(id: Int): Product
+  allProducts: [Product]
+  purchased(userId: Int): [PurchaseList]
+}
+
+type Mutation {
+  createUser(input: UserInput): User
+  createProduct(input: ProductInput): Product
+  deleteProduct(id: Int): Product
+  purchaseProduct(userId: Int, productId: Int): Purchase
+}

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <style>
+      li {
+        margin: 4px 0;
+      }
+      button {
+        margin: 0 4px;
+      }
+      .button-wrap {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>User List</h2>
+    <div id="user-list">None</div>
+    <div class="button-wrap">
+      <button id="user-create-btn">create user</button>
+    </div>
+
+    <h2>Product List</h2>
+    <div id="product-list">Empty</div>
+
+    <div class="button-wrap">
+      <button id="product-create-btn">create product</button>
+    </div>
+
+    <h2>Purchase List</h2>
+    <div id="purchase-list">Empty</div>
+
+    <script type="module">
+      let userId = null;
+      const deleteEventList = [];
+      const purchaseEventList = [];
+
+      /**
+       * product
+       */
+      async function getAllProducts() {
+        const listWrap = document.getElementById("product-list");
+        const query = `{
+          allProducts {
+            id,
+            name,
+            price,
+          }
+        }`;
+
+        return fetch("/graphql", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query,
+          }),
+        })
+          .then((res) => res.json())
+          .then((json) => {
+            deleteAllProduct(listWrap);
+            const { allProducts } = json.data;
+            allProducts.forEach((product) => {
+              const li = document.createElement("li");
+              li.innerText = `${product.name} - ${product.price}`;
+
+              const deleteBtn = document.createElement("button");
+              deleteBtn.innerText = "delete";
+              const deCallback = deleteBtnCallback(Number(product.id));
+              deleteEventList.push(deCallback);
+              deleteBtn.addEventListener("click", deCallback);
+              li.appendChild(deleteBtn);
+
+              const purchaseBtn = document.createElement("button");
+              purchaseBtn.innerText = "purchase";
+              const peCallback = purchaseBtnCallback(
+                userId,
+                Number(product.id)
+              );
+              purchaseEventList.push(peCallback);
+              purchaseBtn.addEventListener("click", peCallback);
+              li.appendChild(purchaseBtn);
+
+              listWrap.appendChild(li);
+            });
+          });
+      }
+
+      function deleteAllProduct(el) {
+        while (el.firstChild) {
+          const dEvent = deleteEventList.shift();
+          const pEvent = purchaseEventList.shift();
+          el.firstChild.removeEventListener("click", dEvent);
+          el.firstChild.removeEventListener("click", pEvent);
+          el.removeChild(el.firstChild);
+        }
+      }
+
+      function deleteBtnCallback(id) {
+        return () => {
+          const query = `mutation DeleteProduct($id: Int) {
+            deleteProduct(id: $id) {
+              name,
+              price,
+              description
+            }
+          }`;
+
+          fetch("/graphql", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              query,
+              variables: {
+                id,
+              },
+            }),
+          })
+            .then((res) => res.json())
+            .then(async (data) => {
+              await getAllProducts();
+              await getPurchased();
+            });
+        };
+      }
+
+      const productCreateBtn = document.getElementById("product-create-btn");
+      productCreateBtn.addEventListener("click", () => {
+        const query = `mutation CreateProduct($input: ProductInput) {
+          createProduct(input: $input) {
+            name,
+            price,
+            description
+          }
+        }`;
+
+        fetch("/graphql", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query,
+            variables: {
+              input: {
+                name: `Product-${Math.floor(Math.random() * 10) + 1}`,
+                price: (Math.floor(Math.random() * 10) + 1) * 1000,
+                description: "Created!",
+              },
+            },
+          }),
+        })
+          .then((res) => res.json())
+          .then(() => {
+            getAllProducts();
+          });
+      });
+
+      /**
+       * user
+       */
+      async function getAllUser() {
+        const listWrap = document.getElementById("user-list");
+        const query = `{
+          users {
+            id,
+            name,
+            email,
+          }
+        }`;
+
+        return fetch("/graphql", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query,
+          }),
+        })
+          .then((res) => res.json())
+          .then((json) => {
+            deleteAllUser(listWrap);
+            const { users } = json.data;
+            users.forEach((user, idx) => {
+              if (idx === 0) {
+                userId = Number(user.id);
+              }
+              const li = document.createElement("li");
+              li.innerText = `${user.name} - ${user.email}`;
+              listWrap.appendChild(li);
+            });
+          });
+      }
+
+      function deleteAllUser(el) {
+        while (el.firstChild) {
+          el.removeChild(el.firstChild);
+        }
+      }
+
+      // const userCreateBtn = document.getElementById("user-create-btn");
+      // userCreateBtn.addEventListener("click", () => {
+      //   const query = `mutation CreateUser($input: UserInput) {
+      //     createUser(input: $input) {
+      //       name,
+      //       email
+      //     }
+      //   }`;
+
+      //   fetch("/graphql", {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       query,
+      //       variables: {
+      //         input: {
+      //           name: `songwon`,
+      //           email: `songwon.park@graphql.com`,
+      //         },
+      //       },
+      //     }),
+      //   })
+      //     .then((res) => res.json())
+      //     .then(() => {
+      //       getAllUser();
+      //     });
+      // });
+
+      /**
+       * purchase
+       */
+      function purchaseBtnCallback(userId, productId) {
+        return () => {
+          const query = `mutation PurchaseProduct($userId: Int, $productId: Int) {
+            purchaseProduct(userId: $userId, productId: $productId) {
+              id,
+              userId,
+              productId,
+            }
+          }`;
+
+          fetch("/graphql", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              query,
+              variables: {
+                userId,
+                productId,
+              },
+            }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              getPurchased();
+            });
+        };
+      }
+
+      function deletePurchased(el) {
+        while (el.firstChild) {
+          el.removeChild(el.firstChild);
+        }
+      }
+
+      async function getPurchased() {
+        const listWrap = document.getElementById("purchase-list");
+        const query = `query Purchased($userId: Int) {
+          purchased(userId: $userId) {
+            id,
+            user {
+              name
+            },
+            product {
+              name,
+              price,
+              description
+            }
+          }
+        }`;
+
+        return fetch("/graphql", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query,
+            variables: {
+              userId,
+            },
+          }),
+        })
+          .then((res) => res.json())
+          .then((json) => {
+            deletePurchased(listWrap);
+            const { purchased } = json.data;
+            purchased.forEach((info, idx) => {
+              const li = document.createElement("li");
+              const { user, product } = info;
+              li.innerText = `${product.name} - ${user.name}`;
+              listWrap.appendChild(li);
+            });
+          });
+      }
+
+      await getAllUser();
+      await getAllProducts();
+      await getPurchased();
+    </script>
+  </body>
+</html>
