@@ -69,7 +69,7 @@ app.get("/", (_, res) => {
   res.sendFile("home.html", { root: path.resolve(__dirname, "./view") });
 });
 
-app.get("/insert-user", async (_, res) => {
+app.get("/insert-product", async (_, res) => {
   let product: Prisma.ProductCreateInput;
   product = {
     name: "test",
